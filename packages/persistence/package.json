@@ -1,0 +1,28 @@
+{
+  "name": "@smol-dungeon/persistence",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@smol-dungeon/schema": "workspace:*",
+    "drizzle-orm": "^0.29.0",
+    "better-sqlite3": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "drizzle-kit": "^0.20.0"
+  }
+}

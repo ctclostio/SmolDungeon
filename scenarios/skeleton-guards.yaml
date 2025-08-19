@@ -1,0 +1,69 @@
+name: "Skeleton Guards"
+description: "Ancient skeleton guards protect a forgotten tomb"
+context: "As you push open the heavy stone doors, the sound of rattling bones fills the air. Two skeleton guards rise from their eternal vigil!"
+
+players:
+  - name: "Cleric"
+    stats:
+      hp: 25
+      maxHp: 25
+      attack: 4
+      defense: 5
+      speed: 2
+    weapons:
+      - name: "Holy Mace"
+        damage: 6
+        accuracy: 80
+    abilities:
+      - name: "Turn Undead"
+        cooldown: 4
+        effect: "damage"
+        power: 15
+      - name: "Healing Light"
+        cooldown: 3
+        effect: "heal"
+        power: 12
+    items:
+      - name: "Holy Water"
+        type: "consumable"
+        effect: "deal extra damage to undead"
+      - name: "Health Potion"
+        type: "consumable"
+        effect: "heal 20 HP"
+
+enemies:
+  - name: "Skeleton Warrior"
+    stats:
+      hp: 18
+      maxHp: 18
+      attack: 5
+      defense: 3
+      speed: 3
+    weapons:
+      - name: "Ancient Sword"
+        damage: 7
+        accuracy: 75
+    abilities:
+      - name: "Bone Rattle"
+        cooldown: 5
+        effect: "debuff"
+        power: 5
+    items: []
+  
+  - name: "Skeleton Archer"
+    stats:
+      hp: 14
+      maxHp: 14
+      attack: 6
+      defense: 2
+      speed: 4
+    weapons:
+      - name: "Bone Bow"
+        damage: 6
+        accuracy: 85
+    abilities:
+      - name: "Piercing Shot"
+        cooldown: 3
+        effect: "damage"
+        power: 9
+    items: []

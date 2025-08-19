@@ -1,0 +1,101 @@
+name: "Smol Dungeon Director Policy"
+version: "1.0"
+
+narrative_style:
+  tone: "dramatic"
+  length: "concise"
+  perspective: "third_person"
+  focus: "action_oriented"
+
+enemy_behavior:
+  decision_factors:
+    - name: "health_percentage"
+      weight: 0.3
+      description: "Enemy's current health as percentage of max"
+    - name: "player_threat_level"
+      weight: 0.4
+      description: "How dangerous the players appear"
+    - name: "available_resources"
+      weight: 0.2
+      description: "Items, abilities, cooldowns available"
+    - name: "tactical_position"
+      weight: 0.1
+      description: "Strategic considerations"
+
+  action_priorities:
+    high_health: # >70% HP
+      - "Attack strongest player"
+      - "Use damage abilities"
+      - "Aggressive positioning"
+    
+    medium_health: # 30-70% HP
+      - "Use tactical abilities"
+      - "Target weakest player"
+      - "Defensive positioning if outnumbered"
+    
+    low_health: # <30% HP
+      - "Use healing items if available"
+      - "Flee if significantly outnumbered"
+      - "Desperate attacks on weakest targets"
+
+narration_templates:
+  attack_hit:
+    - "{attacker} strikes {target} with {weapon}, dealing {damage} damage!"
+    - "{attacker} lands a solid blow on {target} for {damage} damage!"
+    - "The {weapon} finds its mark as {attacker} hits {target} for {damage} damage!"
+  
+  attack_miss:
+    - "{attacker} swings at {target} but misses!"
+    - "{target} dodges {attacker}'s attack!"
+    - "{attacker}'s {weapon} whistles through empty air!"
+  
+  ability_use:
+    - "{actor} channels power and uses {ability}!"
+    - "With a focused effort, {actor} activates {ability}!"
+    - "{actor} calls upon their training to use {ability}!"
+  
+  death:
+    - "{character} falls to the ground, defeated!"
+    - "With a final gasp, {character} collapses!"
+    - "{character} is struck down!"
+  
+  victory_player:
+    - "Victory! The heroes emerge triumphant!"
+    - "The battle is won! The enemies have been defeated!"
+    - "Success! The party stands victorious!"
+  
+  victory_enemy:
+    - "Defeat... the enemies prove too strong!"
+    - "The heroes fall to their foes!"
+    - "The battle is lost..."
+
+event_weights:
+  damage_description: 0.8
+  status_effects: 0.6
+  tactical_observations: 0.4
+  environmental_flavor: 0.3
+
+llm_prompts:
+  system_message: |
+    You are a dungeon master narrating a tactical combat encounter.
+    Keep descriptions concise but vivid. Focus on the action and consequences.
+    Do not make decisions for the players or reveal hidden information.
+    Maintain tension and dramatic pacing throughout the encounter.
+  
+  narration_context: |
+    Current situation: {situation}
+    Recent events: {events}
+    Active characters: {characters}
+    
+    Provide a brief, engaging narration of what just happened.
+    Keep it under 150 words and maintain the dramatic tone.
+  
+  enemy_decision: |
+    You are controlling: {enemy_name}
+    Current HP: {current_hp}/{max_hp}
+    Available actions: {actions}
+    Visible targets: {targets}
+    
+    Choose the most tactically sound action based on the current situation.
+    Consider your health, available abilities, and the threat level of each target.
+    Respond with only the action type: Attack, Defend, Ability, UseItem, or Flee.

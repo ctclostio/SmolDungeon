@@ -1,0 +1,69 @@
+name: "Goblin Ambush"
+description: "A group of goblins attacks the party on a forest path"
+context: "The party is traveling through a dark forest when goblins leap from the bushes, their eyes gleaming with malice!"
+
+players:
+  - name: "Fighter"
+    stats:
+      hp: 30
+      maxHp: 30
+      attack: 6
+      defense: 4
+      speed: 3
+    weapons:
+      - name: "Longsword"
+        damage: 8
+        accuracy: 85
+      - name: "Shield Bash"
+        damage: 4
+        accuracy: 90
+    abilities:
+      - name: "Power Attack"
+        cooldown: 3
+        effect: "damage"
+        power: 12
+      - name: "Second Wind"
+        cooldown: 5
+        effect: "heal"
+        power: 15
+    items:
+      - name: "Health Potion"
+        type: "consumable"
+        effect: "heal 20 HP"
+
+enemies:
+  - name: "Goblin Warrior"
+    stats:
+      hp: 15
+      maxHp: 15
+      attack: 4
+      defense: 2
+      speed: 5
+    weapons:
+      - name: "Rusty Sword"
+        damage: 5
+        accuracy: 75
+    abilities:
+      - name: "Sneaky Strike"
+        cooldown: 4
+        effect: "damage"
+        power: 8
+    items: []
+  
+  - name: "Goblin Archer"
+    stats:
+      hp: 12
+      maxHp: 12
+      attack: 5
+      defense: 1
+      speed: 6
+    weapons:
+      - name: "Short Bow"
+        damage: 6
+        accuracy: 80
+    abilities:
+      - name: "Aimed Shot"
+        cooldown: 3
+        effect: "damage"
+        power: 10
+    items: []

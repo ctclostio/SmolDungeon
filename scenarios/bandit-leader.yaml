@@ -1,0 +1,79 @@
+name: "Bandit Leader"
+description: "A notorious bandit leader and their lieutenant block the mountain pass"
+context: "The mountain pass narrows ahead, and a gruff voice calls out: 'Halt! Pay the toll or face our blades!'"
+
+players:
+  - name: "Rogue"
+    stats:
+      hp: 28
+      maxHp: 28
+      attack: 7
+      defense: 3
+      speed: 8
+    weapons:
+      - name: "Twin Daggers"
+        damage: 6
+        accuracy: 90
+      - name: "Throwing Knife"
+        damage: 4
+        accuracy: 85
+    abilities:
+      - name: "Sneak Attack"
+        cooldown: 2
+        effect: "damage"
+        power: 14
+      - name: "Smoke Bomb"
+        cooldown: 4
+        effect: "buff"
+        power: 8
+    items:
+      - name: "Poison Vial"
+        type: "consumable"
+        effect: "coat weapon with poison"
+      - name: "Health Potion"
+        type: "consumable"
+        effect: "heal 20 HP"
+
+enemies:
+  - name: "Bandit Leader"
+    stats:
+      hp: 25
+      maxHp: 25
+      attack: 8
+      defense: 4
+      speed: 5
+    weapons:
+      - name: "Cutlass"
+        damage: 9
+        accuracy: 80
+    abilities:
+      - name: "Commanding Strike"
+        cooldown: 4
+        effect: "damage"
+        power: 13
+      - name: "Rally Cry"
+        cooldown: 6
+        effect: "buff"
+        power: 10
+    items:
+      - name: "Healing Draught"
+        type: "consumable"
+        effect: "heal 15 HP"
+  
+  - name: "Bandit Lieutenant"
+    stats:
+      hp: 20
+      maxHp: 20
+      attack: 6
+      defense: 3
+      speed: 6
+    weapons:
+      - name: "Scimitar"
+        damage: 7
+        accuracy: 82
+    abilities:
+      - name: "Quick Slash"
+        cooldown: 3
+        effect: "damage"
+        power: 10
+    items: []
