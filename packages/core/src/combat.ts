@@ -1,4 +1,4 @@
-import type { Action, Character, Event, Resolution, State, Id } from '@smol-dungeon/schema';
+import type { Action, Event, Resolution, State, Id } from '@smol-dungeon/schema';
 import { SeededRNG } from './rng.js';
 
 export function applyAction(state: State, action: Action, seed: number): Resolution {
@@ -91,7 +91,7 @@ function handleAttack(
 function handleDefend(
   state: State,
   action: Extract<Action, { kind: 'Defend' }>,
-  rng: SeededRNG,
+  _rng: SeededRNG,
   events: Event[],
   logs: string[]
 ): Resolution {
