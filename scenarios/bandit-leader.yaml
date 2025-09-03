@@ -4,6 +4,9 @@ context: "The mountain pass narrows ahead, and a gruff voice calls out: 'Halt! P
 
 players:
   - name: "Rogue"
+    position:
+      x: 0
+      y: 0
     stats:
       hp: 28
       maxHp: 28
@@ -36,6 +39,9 @@ players:
 
 enemies:
   - name: "Bandit Leader"
+    position:
+      x: 2
+      y: 0
     stats:
       hp: 25
       maxHp: 25
@@ -59,8 +65,11 @@ enemies:
       - name: "Healing Draught"
         type: "consumable"
         effect: "heal 15 HP"
-  
+
   - name: "Bandit Lieutenant"
+    position:
+      x: 1
+      y: 1
     stats:
       hp: 20
       maxHp: 20

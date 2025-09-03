@@ -1,26 +1,15 @@
 {
-  "name": "smol-dungeon",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
+  "name": "smol-dungeon-go",
+  "version": "1.0.0",
+  "description": "High-performance SmolDungeon with Go Fiber backend",
   "scripts": {
-    "dev": "pnpm run --parallel dev",
-    "build": "pnpm run --recursive build",
-    "test": "vitest",
-    "test:ci": "vitest run",
-    "typecheck": "pnpm run --recursive typecheck",
-    "lint": "eslint . --ext .ts,.tsx"
+    "dev": "pnpm run --parallel dev:dm dev:web",
+    "dev:dm": "cd apps/dm-go && go run .",
+    "dev:web": "cd apps/web && npm run dev",
+    "build:dm": "cd apps/dm-go && go build -o dm-server .",
+    "build:web": "cd apps/web && npm run build"
   },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0",
-    "fast-check": "^3.0.0",
-    "eslint": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": ["golang", "fiber", "gaming", "dungeon", "combat"],
+  "author": "SmolDungeon Team",
+  "license": "MIT"
 }

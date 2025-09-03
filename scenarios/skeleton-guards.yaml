@@ -4,6 +4,9 @@ context: "As you push open the heavy stone doors, the sound of rattling bones fi
 
 players:
   - name: "Cleric"
+    position:
+      x: 0
+      y: 0
     stats:
       hp: 25
       maxHp: 25
@@ -33,6 +36,9 @@ players:
 
 enemies:
   - name: "Skeleton Warrior"
+    position:
+      x: 1
+      y: 0
     stats:
       hp: 18
       maxHp: 18
@@ -49,8 +55,11 @@ enemies:
         effect: "debuff"
         power: 5
     items: []
-  
+
   - name: "Skeleton Archer"
+    position:
+      x: 0
+      y: 2
     stats:
       hp: 14
       maxHp: 14

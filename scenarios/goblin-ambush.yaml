@@ -4,6 +4,9 @@ context: "The party is traveling through a dark forest when goblins leap from th
 
 players:
   - name: "Fighter"
+    position:
+      x: 0
+      y: 0
     stats:
       hp: 30
       maxHp: 30
@@ -33,6 +36,9 @@ players:
 
 enemies:
   - name: "Goblin Warrior"
+    position:
+      x: 1
+      y: 1
     stats:
       hp: 15
       maxHp: 15
@@ -49,8 +55,11 @@ enemies:
         effect: "damage"
         power: 8
     items: []
-  
+
   - name: "Goblin Archer"
+    position:
+      x: -1
+      y: 2
     stats:
       hp: 12
       maxHp: 12
