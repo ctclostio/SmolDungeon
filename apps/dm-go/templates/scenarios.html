@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Scenario - SmolDungeon</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .back-link { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            color: #3498db; 
+            text-decoration: none; 
+            font-size: 1.1em;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover { 
+            text-decoration: underline; 
+            color: #2980b9;
+        }
+        h1 { 
+            color: #2c3e50; 
+            text-align: center; 
+            margin: 0 0 15px 0;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            text-align: center;
+            font-size: 1.2em;
+            margin: 0 0 30px 0;
+        }
+        .scenario-grid {
+            display: grid;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .scenario-card {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .scenario-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        .scenario-card:hover::before {
+            left: 100%;
+        }
+        .scenario-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.2);
+            transform: translateY(-2px);
+        }
+        .scenario-card h3 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 1.4em;
+        }
+        .scenario-card p {
+            color: #6c757d;
+            margin: 0 0 20px 0;
+            line-height: 1.5;
+        }
+        .start-button {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+        .start-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
+        }
+        .empty-state h3 {
+            color: #6c757d;
+            margin: 0 0 10px 0;
+        }
+        .empty-state p {
+            color: #868e96;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .scenario-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .difficulty-easy {
+            background: #d4edda;
+            color: #155724;
+        }
+        .difficulty-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .difficulty-hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+        <h1>🎯 Choose Your Scenario</h1>
+        <p class="subtitle">Select a scenario to begin your tactical combat adventure</p>
+        
+        {{if .Scenarios}}
+        <div class="scenario-grid">
+            {{range .Scenarios}}
+            <div class="scenario-card">
+                <div class="scenario-icon">⚔️</div>
+                <h3>{{.DisplayName}}</h3>
+                <div class="difficulty-badge difficulty-medium">Medium Difficulty</div>
+                <p>Engage in tactical combat against {{.DisplayName}}. Test your strategic thinking and combat prowess in this challenging encounter.</p>
+                <form method="post" action="/game/start" style="margin: 0;">
+                    <input type="hidden" name="scenario" value="{{.Name}}">
+                    <button type="submit" class="start-button">
+                        🚀 Start {{.DisplayName}} Adventure
+                    </button>
+                </form>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <h3>📁 No Scenarios Available</h3>
+            <p>Scenario files are being loaded. Please check back in a moment or ensure scenario files exist in the scenarios directory.</p>
+        </div>
+        {{end}}
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <p style="color: #6c757d; font-style: italic;">
+                🏗️ More scenarios coming soon! Each scenario offers unique challenges and tactical opportunities.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive enhancements
+        document.querySelectorAll('.scenario-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Add loading state to forms
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const button = this.querySelector('button[type="submit"]');
+                const originalText = button.textContent;
+                button.textContent = '🚀 Launching...';
+                button.disabled = true;
+                
+                // Re-enable after 3 seconds in case of error
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>

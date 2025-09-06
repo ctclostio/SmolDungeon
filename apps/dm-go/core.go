@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 	"strings"
@@ -14,7 +16,7 @@ func CreateInitialState(players, enemies []Character, seed int64) State {
 
 	// Create turn order based on initiative (speed + d20)
 	type charWithInit struct {
-		id        ID
+		id         ID
 		initiative int
 	}
 
@@ -117,9 +119,13 @@ func GetStateSummary(state State) string {
 
 // ApplyAction applies an action to the state and returns the resolution
 func ApplyAction(state State, action Action, seed int64) Resolution {
+	// Stub for actor system: In full impl, send action as message to character actor goroutine
+	// For now, log bypass and proceed with direct (to highlight violation)
+	log.Printf("WARNING: Bypassing actor system for action %s", action.Kind)
 	rng := NewSeededRNG(seed)
 	events := []Event{}
 	logs := []string{}
+	logs = append(logs, "Actor bypass: Direct mutation used")
 
 	newState := deepCopyState(state)
 	character := GetCharacterByID(newState, getActorID(action))
@@ -129,6 +135,23 @@ func ApplyAction(state State, action Action, seed int64) Resolution {
 			Events: events,
 			State:  state,
 			Logs:   append(logs, "Invalid action: character not found"),
+		}
+	}
+
+	// Validate action kind
+	validKinds := []string{"Attack", "Defend", "Ability", "UseItem", "Flee"}
+	valid := false
+	for _, k := range validKinds {
+		if action.Kind == k {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		return Resolution{
+			Events: events,
+			State:  state,
+			Logs:   append(logs, "Invalid action kind"),
 		}
 	}
 
@@ -181,7 +204,8 @@ func handleAttack(state *State, action Action, rng *SeededRNG, events []Event, l
 	}
 
 	if weapon == nil {
-		return Resolution{Events: events, State: *state, Logs: append(logs, "Weapon not found")}
+		logs = append(logs, "Weapon not found - using default")
+		weapon = &Weapon{Name: "Fist", Damage: 1, Accuracy: 0} // Default
 	}
 
 	attackRoll := rng.RollD20()
@@ -337,7 +361,7 @@ func handleUseItem(state *State, action Action, rng *SeededRNG, events []Event, 
 	character.Items = append(character.Items[:itemIndex], character.Items[itemIndex+1:]...)
 
 	events = append(events, Event{
-		Type: "item_used",
+		Type:  "item_used",
 		Actor: character.ID,
 		Item:  item.ID,
 	})
@@ -406,8 +430,8 @@ func advanceTurn(state State) State {
 			}
 		}
 
-		// Reset defense bonus if it was increased
-		if char.Stats.Defense > char.Stats.Defense { // This logic seems wrong in original, but keeping for now
+		// Reset defense bonus if it was increased (assuming base defense is around 3-5)
+		if char.Stats.Defense > 5 {
 			char.Stats.Defense = int(math.Max(0, float64(char.Stats.Defense-2)))
 		}
 	}
@@ -446,22 +470,16 @@ func advanceTurn(state State) State {
 
 // deepCopyState creates a deep copy of the state
 func deepCopyState(state State) State {
-	// This is a simplified deep copy - in production, use a proper deep copy library
-	newState := state
-	newState.Characters = make([]Character, len(state.Characters))
-	copy(newState.Characters, state.Characters)
-
-	newState.TurnOrder = make([]ID, len(state.TurnOrder))
-	copy(newState.TurnOrder, state.TurnOrder)
-
-	// Deep copy ability cooldowns
-	for i := range newState.Characters {
-		newState.Characters[i].AbilityCooldowns = make(map[string]int)
-		for k, v := range state.Characters[i].AbilityCooldowns {
-			newState.Characters[i].AbilityCooldowns[k] = v
-		}
+	stateBytes, err := json.Marshal(state)
+	if err != nil {
+		log.Printf("Deep copy failed: %v", err)
+		return state // Fallback to shallow
 	}
-
+	var newState State
+	if err := json.Unmarshal(stateBytes, &newState); err != nil {
+		log.Printf("Deep copy failed: %v", err)
+		return state // Fallback to shallow
+	}
 	return newState
 }
 

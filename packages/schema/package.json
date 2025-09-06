@@ -1,0 +1,9 @@
+{
+  "name": "@smol-dungeon/schema",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "types": "src/types.ts",
+  "dependencies": {
+    "react": "^18.0.0"
+  }
+}
