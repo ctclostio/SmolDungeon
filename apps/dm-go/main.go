@@ -586,10 +586,11 @@ func handleGameAction(c *fiber.Ctx) error {
 	var action Action
 	switch req.Action {
 	case "attack":
-		// For simplicity, attack the first enemy
+		// Target the opposite team: if current char is player, target enemies; if enemy, target players
 		var targetID ID
+		targetIsPlayer := !currentChar.IsPlayer // If attacker is enemy, target players; if player, target enemies
 		for _, char := range state.Characters {
-			if !char.IsPlayer && char.Stats.HP > 0 {
+			if char.IsPlayer == targetIsPlayer && char.Stats.HP > 0 {
 				targetID = char.ID
 				break
 			}
