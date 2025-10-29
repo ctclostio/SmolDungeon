@@ -1,51 +1,43 @@
 # 🚀 SmolDungeon Go
 
-**High-performance turn-based combat game powered by Go Fiber**
+**High-performance turn-based combat game powered by Go**
 
 SmolDungeon Go is a clean, fast implementation of SmolDungeon featuring:
-- ⚡ **Go Fiber Backend** - High-performance REST API
-- 🎮 **React Frontend** - Simple web interface
+- ⚡ **Go Fiber Backend** - High-performance REST API with HTML templates
 - 🗄️ **SQLite Database** - Event-sourced persistence
 - 🤖 **LLM Integration** - AI-powered enemy actions
-- 🏗️ **Clean Architecture** - Minimal, focused codebase
+- 🏗️ **Clean Architecture** - Single-binary deployment
 
 ## Quick Start
 
 ### Prerequisites
-- Go 1.21+ (for backend)
-- Node.js 18+ (for frontend)
+- Go 1.21+
 
-### Run Everything
+### Run the Server
 ```bash
-# Install dependencies
-pnpm install
+# Development mode
+go run ./apps/dm-go
 
-# Start both servers
-pnpm run dev
+# Or use npm script
+npm run dev
 ```
 
-This will start:
-- **Go DM Server**: http://localhost:3000
-- **Web Client**: http://localhost:5173
+This will start the server at: http://localhost:3000
 
 ## Project Structure
 
 ```
 smol-dungeon-go/
 ├── apps/
-│   ├── dm-go/          # Go Fiber backend
-│   │   ├── main.go     # Server entry point
-│   │   ├── types.go    # Data structures
-│   │   ├── core.go     # Game logic
-│   │   ├── database.go # SQLite persistence
-│   │   ├── llm.go      # AI integration
-│   │   └── rng.go      # Random number generation
-│   └── web/            # React frontend
-│       ├── src/
-│       │   └── Game.tsx # Simple web client
-│       └── package.json
-├── package.json        # Root scripts
-└── README.md
+│   └── dm-go/          # Go Fiber backend with HTML templates
+│       ├── main.go     # Server entry point
+│       ├── types.go    # Data structures
+│       ├── core.go     # Game logic
+│       ├── database.go # SQLite persistence
+│       ├── llm.go      # AI integration
+│       └── templates/  # HTML templates
+├── scenarios/          # YAML scenario definitions
+└── package.json        # Build scripts
 ```
 
 ## API Endpoints
@@ -63,18 +55,11 @@ smol-dungeon-go/
 
 ## Development
 
-### Backend (Go)
 ```bash
 cd apps/dm-go
 go run .                    # Development
 go build -o dm-server .     # Production build
-```
-
-### Frontend (React)
-```bash
-cd apps/web
-npm run dev     # Development server
-npm run build   # Production build
+go test -v ./...            # Run tests
 ```
 
 ## Configuration

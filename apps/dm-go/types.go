@@ -90,12 +90,13 @@ type Event struct {
 
 // State represents the game state
 type State struct {
-	Round       int         `json:"round"`
-	Characters  []Character `json:"characters"`
-	TurnOrder   []ID        `json:"turnOrder"`
-	CurrentTurn int         `json:"currentTurn"`
-	IsComplete  bool        `json:"isComplete"`
-	Winner      *string     `json:"winner,omitempty"` // "player", "enemy", "draw"
+	Round        int                `json:"round"`
+	Characters   []Character        `json:"characters"`
+	CharacterMap map[ID]*Character  `json:"-"` // O(1) character lookup, not serialized
+	TurnOrder    []ID               `json:"turnOrder"`
+	CurrentTurn  int                `json:"currentTurn"`
+	IsComplete   bool               `json:"isComplete"`
+	Winner       *string            `json:"winner,omitempty"` // "player", "enemy", "draw"
 }
 
 // Resolution represents the result of applying an action

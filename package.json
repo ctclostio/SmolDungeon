@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "description": "High-performance SmolDungeon with Go Fiber backend",
   "scripts": {
-    "dev": "pnpm run --parallel dev:dm dev:web",
-    "dev:dm": "cd apps/dm-go && go run .",
-    "dev:web": "cd apps/web && npm run dev",
-    "build:dm": "cd apps/dm-go && go build -o dm-server .",
-    "build:web": "cd apps/web && npm run build"
+    "dev": "cd apps/dm-go && go run .",
+    "build": "cd apps/dm-go && go build -o dm-server .",
+    "test": "cd apps/dm-go && go test -v ./..."
   },
   "keywords": ["golang", "fiber", "gaming", "dungeon", "combat"],
   "author": "SmolDungeon Team",

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -86,7 +87,10 @@ func NewLLMClient(config LLMConfig) *LLMClient {
 	}
 }
 
-// GenerateNarration generates narrative text for game events
+// GenerateNarration generates narrative text for game events using an LLM.
+// Takes the current game state, list of event descriptions, and optional context.
+// Returns a dramatic narration of what happened, or a fallback message if LLM fails.
+// Errors are logged but not returned - this function gracefully degrades to fallback text.
 func (llm *LLMClient) GenerateNarration(state State, events []string, context string) (string, error) {
 	systemPrompt := `You are a dungeon master narrating a combat encounter.
 Keep narration concise, dramatic, and focused on the action.
@@ -147,17 +151,23 @@ Provide a brief, vivid narration of what just happened:`,
 	)
 
 	if err != nil {
-		return "The battle continues...", fmt.Errorf("LLM narration failed: %w", err)
+		// Log error but return fallback narration (graceful degradation)
+		log.Printf("LLM narration failed, using fallback: %v", err)
+		return "The battle continues...", nil
 	}
 
 	if len(resp.Choices) == 0 {
+		log.Printf("LLM returned no choices, using fallback")
 		return "The battle continues...", nil
 	}
 
 	return resp.Choices[0].Message.Content, nil
 }
 
-// SuggestEnemyAction suggests an action for an enemy character
+// SuggestEnemyAction suggests an action for an enemy character using an LLM.
+// Analyzes the current game state and returns a recommended action (Attack, Defend, Ability, etc.).
+// Returns "Attack" as fallback if LLM fails or enemyID is invalid.
+// Errors are logged but not returned - gracefully degrades to fallback behavior.
 func (llm *LLMClient) SuggestEnemyAction(state State, enemyID ID, context string) (string, error) {
 	enemy := GetCharacterByID(state, enemyID)
 	if enemy == nil || enemy.IsPlayer {
@@ -209,10 +219,13 @@ What should %s do?`,
 	)
 
 	if err != nil {
-		return "Attack", fmt.Errorf("LLM action suggestion failed: %w", err)
+		// Log error but return fallback action (graceful degradation)
+		log.Printf("LLM action suggestion failed, using fallback Attack: %v", err)
+		return "Attack", nil
 	}
 
 	if len(resp.Choices) == 0 {
+		log.Printf("LLM returned no action choices, using fallback Attack")
 		return "Attack", nil
 	}
 
@@ -439,10 +452,13 @@ Create a vivid, dramatic narration of what just happened in this combat encounte
 	)
 
 	if err != nil {
-		return "The battle rages on with intense combat!", fmt.Errorf("remote model failed: %w", err)
+		// Log error but return fallback (graceful degradation)
+		log.Printf("Remote model narration failed, using fallback: %v", err)
+		return "The battle rages on with intense combat!", nil
 	}
 
 	if len(resp.Choices) == 0 {
+		log.Printf("Remote model returned no choices, using fallback")
 		return "The battle rages on with intense combat!", nil
 	}
 

@@ -1,15 +1,30 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"sort"
 	"strings"
 )
 
-// CreateInitialState creates the initial game state
+// Game balance constants
+const (
+	// Combat constants
+	AttackDC           = 10 // Difficulty class for attack rolls (target defense + this)
+	FleeDC             = 15 // Difficulty class for flee attempts
+	DefenseBonus       = 2  // Temporary defense bonus from Defend action
+	BaseDefenseMax     = 5  // Maximum base defense before bonus is removed
+	MinDamage          = 1  // Minimum damage dealt on successful hit
+	AttackDamageDiv    = 2  // Divisor for attack stat when calculating damage
+	DefaultFistDamage  = 1  // Damage for unarmed/default attacks
+	DefaultFistAccuracy = 0  // Accuracy for unarmed/default attacks
+	MaxCombatRounds    = 20 // Maximum rounds before combat ends
+)
+
+// CreateInitialState creates the initial game state from players and enemies.
+// Initiative rolls determine turn order (Speed + d20), sorted descending.
+// The character map is built for O(1) lookups.
+// Returns a State ready for the first turn of combat.
 func CreateInitialState(players, enemies []Character, seed int64) State {
 	rng := NewSeededRNG(seed)
 	allCharacters := append(players, enemies...)
@@ -36,21 +51,40 @@ func CreateInitialState(players, enemies []Character, seed int64) State {
 		turnOrder[i] = init.id
 	}
 
-	return State{
+	state := State{
 		Round:       1,
 		Characters:  allCharacters,
 		TurnOrder:   turnOrder,
 		CurrentTurn: 0,
 		IsComplete:  false,
 	}
+
+	// Build character map for O(1) lookups
+	state.CharacterMap = buildCharacterMap(&state)
+	return state
 }
 
-// GetCurrentCharacter returns the character whose turn it is
+// buildCharacterMap creates a map for O(1) character lookups
+func buildCharacterMap(state *State) map[ID]*Character {
+	charMap := make(map[ID]*Character, len(state.Characters))
+	for i := range state.Characters {
+		charMap[state.Characters[i].ID] = &state.Characters[i]
+	}
+	return charMap
+}
+
+// GetCurrentCharacter returns the character whose turn it is in the current round.
+// Uses O(1) character map lookup if available, falls back to linear search.
+// Returns nil if the turn index is out of bounds or character not found.
 func GetCurrentCharacter(state State) *Character {
 	if state.CurrentTurn >= len(state.TurnOrder) {
 		return nil
 	}
 	currentID := state.TurnOrder[state.CurrentTurn]
+	if state.CharacterMap != nil {
+		return state.CharacterMap[currentID]
+	}
+	// Fallback to linear search if map not initialized
 	for i := range state.Characters {
 		if state.Characters[i].ID == currentID {
 			return &state.Characters[i]
@@ -59,8 +93,12 @@ func GetCurrentCharacter(state State) *Character {
 	return nil
 }
 
-// GetCharacterByID finds a character by ID
+// GetCharacterByID finds a character by ID using O(1) map lookup
 func GetCharacterByID(state State, id ID) *Character {
+	if state.CharacterMap != nil {
+		return state.CharacterMap[id]
+	}
+	// Fallback to linear search if map not initialized
 	for i := range state.Characters {
 		if state.Characters[i].ID == id {
 			return &state.Characters[i]
@@ -69,7 +107,9 @@ func GetCharacterByID(state State, id ID) *Character {
 	return nil
 }
 
-// GetStateSummary returns a string summary of the state
+// GetStateSummary returns a human-readable string summary of the game state.
+// Includes current round, character HP status, combat completion, winner, and current turn.
+// Useful for logging, debugging, and displaying game status to players.
 func GetStateSummary(state State) string {
 	var summary strings.Builder
 
@@ -117,15 +157,12 @@ func GetStateSummary(state State) string {
 	return summary.String()
 }
 
-// ApplyAction applies an action to the state and returns the resolution
+// ApplyAction applies an action to the state and returns the resolution.
+// Uses direct state mutation for deterministic game logic with seeded RNG.
 func ApplyAction(state State, action Action, seed int64) Resolution {
-	// Stub for actor system: In full impl, send action as message to character actor goroutine
-	// For now, log bypass and proceed with direct (to highlight violation)
-	log.Printf("WARNING: Bypassing actor system for action %s", action.Kind)
 	rng := NewSeededRNG(seed)
 	events := []Event{}
 	logs := []string{}
-	logs = append(logs, "Actor bypass: Direct mutation used")
 
 	newState := deepCopyState(state)
 	character := GetCharacterByID(newState, getActorID(action))
@@ -205,16 +242,16 @@ func handleAttack(state *State, action Action, rng *SeededRNG, events []Event, l
 
 	if weapon == nil {
 		logs = append(logs, "Weapon not found - using default")
-		weapon = &Weapon{Name: "Fist", Damage: 1, Accuracy: 0} // Default
+		weapon = &Weapon{Name: "Fist", Damage: DefaultFistDamage, Accuracy: DefaultFistAccuracy}
 	}
 
 	attackRoll := rng.RollD20()
-	hit := attackRoll+attacker.Stats.Attack >= target.Stats.Defense+10
+	hit := attackRoll+attacker.Stats.Attack >= target.Stats.Defense+AttackDC
 
 	if hit {
-		baseDamage := weapon.Damage + (attacker.Stats.Attack / 2)
+		baseDamage := weapon.Damage + (attacker.Stats.Attack / AttackDamageDiv)
 		damageRoll := rng.RollD6()
-		totalDamage := int(math.Max(1, float64(baseDamage+damageRoll-target.Stats.Defense)))
+		totalDamage := int(math.Max(MinDamage, float64(baseDamage+damageRoll-target.Stats.Defense)))
 
 		target.Stats.HP = int(math.Max(0, float64(target.Stats.HP-totalDamage)))
 
@@ -249,7 +286,7 @@ func handleDefend(state *State, action Action, rng *SeededRNG, events []Event, l
 		return Resolution{Events: events, State: *state, Logs: append(logs, "Invalid defend action")}
 	}
 
-	character.Stats.Defense += 2
+	character.Stats.Defense += DefenseBonus
 	logs = append(logs, fmt.Sprintf("%s takes a defensive stance!", character.Name))
 
 	updatedState := advanceTurn(*state)
@@ -391,7 +428,7 @@ func handleFlee(state *State, action Action, rng *SeededRNG, events []Event, log
 	}
 
 	fleeRoll := rng.RollD20()
-	success := fleeRoll+character.Stats.Speed >= 15
+	success := fleeRoll+character.Stats.Speed >= FleeDC
 
 	if success {
 		events = append(events, Event{
@@ -430,9 +467,9 @@ func advanceTurn(state State) State {
 			}
 		}
 
-		// Reset defense bonus if it was increased (assuming base defense is around 3-5)
-		if char.Stats.Defense > 5 {
-			char.Stats.Defense = int(math.Max(0, float64(char.Stats.Defense-2)))
+		// Reset defense bonus if it was increased
+		if char.Stats.Defense > BaseDefenseMax {
+			char.Stats.Defense = int(math.Max(0, float64(char.Stats.Defense-DefenseBonus)))
 		}
 	}
 
@@ -468,22 +505,74 @@ func advanceTurn(state State) State {
 	return updatedState
 }
 
-// deepCopyState creates a deep copy of the state
+// deepCopyState creates a deep copy of the state using proper value copying
 func deepCopyState(state State) State {
-	stateBytes, err := json.Marshal(state)
-	if err != nil {
-		log.Printf("Deep copy failed: %v", err)
-		return state // Fallback to shallow
+	// Copy characters slice
+	characters := make([]Character, len(state.Characters))
+	for i, char := range state.Characters {
+		// Copy character with deep copies of slices and maps
+		characters[i] = Character{
+			ID:       char.ID,
+			Name:     char.Name,
+			Stats:    char.Stats, // Stat is a simple struct, value copy is fine
+			Position: char.Position,
+			IsPlayer: char.IsPlayer,
+		}
+
+		// Deep copy weapons
+		if len(char.Weapons) > 0 {
+			characters[i].Weapons = make([]Weapon, len(char.Weapons))
+			copy(characters[i].Weapons, char.Weapons)
+		}
+
+		// Deep copy abilities
+		if len(char.Abilities) > 0 {
+			characters[i].Abilities = make([]Ability, len(char.Abilities))
+			copy(characters[i].Abilities, char.Abilities)
+		}
+
+		// Deep copy items
+		if len(char.Items) > 0 {
+			characters[i].Items = make([]Item, len(char.Items))
+			copy(characters[i].Items, char.Items)
+		}
+
+		// Deep copy ability cooldowns map
+		if len(char.AbilityCooldowns) > 0 {
+			characters[i].AbilityCooldowns = make(map[string]int, len(char.AbilityCooldowns))
+			for k, v := range char.AbilityCooldowns {
+				characters[i].AbilityCooldowns[k] = v
+			}
+		}
 	}
-	var newState State
-	if err := json.Unmarshal(stateBytes, &newState); err != nil {
-		log.Printf("Deep copy failed: %v", err)
-		return state // Fallback to shallow
+
+	// Copy turn order
+	turnOrder := make([]ID, len(state.TurnOrder))
+	copy(turnOrder, state.TurnOrder)
+
+	// Copy winner if present
+	var winner *string
+	if state.Winner != nil {
+		w := *state.Winner
+		winner = &w
 	}
+
+	newState := State{
+		Round:       state.Round,
+		Characters:  characters,
+		TurnOrder:   turnOrder,
+		CurrentTurn: state.CurrentTurn,
+		IsComplete:  state.IsComplete,
+		Winner:      winner,
+	}
+
+	// Rebuild character map for the new state
+	newState.CharacterMap = buildCharacterMap(&newState)
+
 	return newState
 }
 
 // CheckCombatEnd checks if combat should end
 func CheckCombatEnd(state State) bool {
-	return state.IsComplete || state.Round >= 20
+	return state.IsComplete || state.Round >= MaxCombatRounds
 }

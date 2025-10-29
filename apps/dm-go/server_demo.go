@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
@@ -16,6 +19,9 @@ func DemoServer() {
 	fmt.Println("🎮 Game will be available at: http://localhost:3000")
 	fmt.Println("📊 Health check at: http://localhost:3000/health")
 	fmt.Println("🎯 Scenarios at: http://localhost:3000/scenarios")
+
+	// Initialize configuration
+	scenarioDir = getEnv("SCENARIO_DIR", "../../scenarios")
 
 	// Use memory store instead of SQLite for demo
 	eventStore = NewMemoryEventStore()
@@ -46,7 +52,28 @@ func DemoServer() {
 
 	// Middleware
 	app.Use(logger.New())
-	app.Use(cors.New())
+
+	// CORS configuration
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000,http://localhost:5173",
+		AllowMethods: "GET,POST,PUT,DELETE",
+		AllowHeaders: "Origin,Content-Type,Accept,session-id",
+		AllowCredentials: true,
+	}))
+
+	// Rate limiting
+	app.Use(limiter.New(limiter.Config{
+		Max:        30,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(429).JSON(fiber.Map{
+				"error": "Too many requests. Please try again later.",
+			})
+		},
+	}))
 
 	// Routes
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -133,8 +160,13 @@ func handleStartGameDemo(c *fiber.Ctx) error {
 		scenarioName = "goblin-ambush"
 	}
 
+	// Validate scenario name to prevent path traversal
+	if strings.Contains(scenarioName, "..") || strings.Contains(scenarioName, "/") || strings.Contains(scenarioName, "\\") {
+		return c.Status(400).SendString("Invalid scenario name")
+	}
+
 	// Load scenario
-	scenarioPath := fmt.Sprintf("../../scenarios/%s.yaml", scenarioName)
+	scenarioPath := filepath.Join(scenarioDir, scenarioName+".yaml")
 	scenario, err := LoadScenario(scenarioPath)
 	if err != nil {
 		log.Printf("Failed to load scenario %s: %v", scenarioName, err)

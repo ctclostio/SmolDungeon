@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
@@ -23,6 +25,7 @@ var (
 	llmClient      *LLMClient
 	stateManager   *StateManager
 	templateEngine *TemplateEngine
+	scenarioDir    string
 	clients        = make(map[string]*websocket.Conn)
 	clientsMutex   sync.RWMutex
 )
@@ -50,6 +53,7 @@ func main() {
 	// Normal mode with SQLite
 	dbPath := getEnv("DB_PATH", "./dm-server.db")
 	port := getEnv("PORT", "3000")
+	scenarioDir = getEnv("SCENARIO_DIR", "../../scenarios")
 	llmConfig := LLMConfig{
 		// Remote model settings
 		BaseURL:     getEnv("LLM_BASE_URL", ""),
@@ -127,7 +131,28 @@ func main() {
 
 	// Middleware
 	app.Use(logger.New())
-	app.Use(cors.New())
+
+	// CORS configuration - restrict to localhost in development
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"),
+		AllowMethods: "GET,POST,PUT,DELETE",
+		AllowHeaders: "Origin,Content-Type,Accept,session-id",
+		AllowCredentials: true,
+	}))
+
+	// Rate limiting - 30 requests per minute per IP
+	app.Use(limiter.New(limiter.Config{
+		Max:        30,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(429).JSON(fiber.Map{
+				"error": "Too many requests. Please try again later.",
+			})
+		},
+	}))
 
 	// Routes
 	setupRoutes(app)
@@ -218,6 +243,22 @@ func handleRollCheck(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
+	// Validate roll check request
+	if req.Actor == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Actor ID is required"})
+	}
+	validTypes := map[string]bool{
+		"attack": true, "defense": true, "skill": true, "save": true,
+	}
+	if !validTypes[req.Type] {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Invalid roll type. Must be one of: attack, defense, skill, save",
+		})
+	}
+	if req.DC < 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "DC cannot be negative"})
+	}
+
 	sessionID := c.Get("session-id")
 	modifier := 0
 
@@ -264,8 +305,39 @@ func handleApplyAction(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
+	// Validate seed
 	if req.Seed == 0 {
-		return c.Status(400).JSON(fiber.Map{"error": "State, action, and seed are required"})
+		return c.Status(400).JSON(fiber.Map{"error": "Seed is required and must be non-zero"})
+	}
+
+	// Validate state
+	if req.State.Round <= 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid state: round must be positive"})
+	}
+	if len(req.State.Characters) == 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid state: no characters found"})
+	}
+	if len(req.State.TurnOrder) == 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid state: turn order is empty"})
+	}
+
+	// Validate action
+	if req.Action.Kind == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid action: kind is required"})
+	}
+	validKinds := map[string]bool{
+		"Attack": true, "Defend": true, "Ability": true,
+		"UseItem": true, "Flee": true,
+	}
+	if !validKinds[req.Action.Kind] {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Invalid action kind. Must be one of: Attack, Defend, Ability, UseItem, Flee",
+		})
+	}
+
+	// Validate action has required actor
+	if req.Action.Actor == "" && req.Action.Attacker == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid action: actor or attacker is required"})
 	}
 
 	resolution := ApplyAction(req.State, req.Action, req.Seed)
@@ -642,8 +714,13 @@ func handleStartGame(c *fiber.Ctx) error {
 		return c.Status(400).SendString("Scenario name is required")
 	}
 
+	// Validate scenario name to prevent path traversal
+	if strings.Contains(scenarioName, "..") || strings.Contains(scenarioName, "/") || strings.Contains(scenarioName, "\\") {
+		return c.Status(400).SendString("Invalid scenario name")
+	}
+
 	// Load scenario
-	scenarioPath := fmt.Sprintf("../../scenarios/%s.yaml", scenarioName)
+	scenarioPath := filepath.Join(scenarioDir, scenarioName+".yaml")
 	scenario, err := LoadScenario(scenarioPath)
 	if err != nil {
 		log.Printf("Failed to load scenario %s: %v", scenarioName, err)
@@ -834,7 +911,7 @@ func convertScenarioCharacterToCharacter(sc ScenarioCharacter, isPlayer bool) Ch
 
 // GetAvailableScenarios returns a list of available scenario files
 func GetAvailableScenarios() ([]string, error) {
-	files, err := os.ReadDir("../../scenarios")
+	files, err := os.ReadDir(scenarioDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read scenarios directory: %w", err)
 	}
