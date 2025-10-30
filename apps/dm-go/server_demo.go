@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/websocket/v2"
 )
 
 // DemoServer runs a simple demo server without SQLite dependencies
@@ -89,6 +90,9 @@ func DemoServer() {
 	app.Get("/game/:sessionId", handleGamePage)
 	app.Post("/game/start", handleStartGameDemo)
 	app.Post("/game/:sessionId/action", handleGameAction)
+
+	// WebSocket route for real-time updates
+	app.Get("/ws/:sessionId", websocket.New(handleWebSocket))
 
 	// Create a demo session on startup
 	createDemoSession()
