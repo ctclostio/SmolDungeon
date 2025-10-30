@@ -485,8 +485,112 @@ func handleWebSocket(c *websocket.Conn) {
 			break
 		}
 
-		// Handle incoming messages (e.g., ping, etc.)
 		log.Printf("Received WebSocket message: %v", msg)
+
+		// Check message type
+		msgType, ok := msg["type"].(string)
+		if !ok || msgType != "action" {
+			continue
+		}
+
+		// Get action from message
+		actionStr, ok := msg["action"].(string)
+		if !ok {
+			continue
+		}
+
+		// Get current state
+		state, exists := stateManager.GetState(sessionID)
+		if !exists {
+			c.WriteJSON(fiber.Map{"error": "Session not found"})
+			continue
+		}
+
+		// Get current character
+		currentChar := GetCurrentCharacter(state)
+		if currentChar == nil {
+			c.WriteJSON(fiber.Map{"error": "No current character"})
+			continue
+		}
+
+		// Create action based on message
+		var action Action
+		switch actionStr {
+		case "attack":
+			// Target the opposite team
+			var targetID ID
+			targetIsPlayer := !currentChar.IsPlayer
+			for _, char := range state.Characters {
+				if char.IsPlayer == targetIsPlayer && char.Stats.HP > 0 {
+					targetID = char.ID
+					break
+				}
+			}
+			if targetID == "" {
+				c.WriteJSON(fiber.Map{"error": "No valid target"})
+				continue
+			}
+
+			// Use first weapon
+			var weaponID ID
+			if len(currentChar.Weapons) > 0 {
+				weaponID = currentChar.Weapons[0].ID
+			}
+
+			action = Action{
+				Kind:     "Attack",
+				Attacker: currentChar.ID,
+				Target:   targetID,
+				Weapon:   weaponID,
+			}
+
+		case "defend":
+			action = Action{
+				Kind:  "Defend",
+				Actor: currentChar.ID,
+			}
+
+		case "flee":
+			action = Action{
+				Kind:  "Flee",
+				Actor: currentChar.ID,
+			}
+
+		default:
+			c.WriteJSON(fiber.Map{"error": "Unknown action"})
+			continue
+		}
+
+		// Apply the action
+		seed := time.Now().UnixNano()
+		resolution := ApplyAction(state, action, seed)
+
+		// Update state
+		newState := resolution.State
+		stateManager.SetState(sessionID, newState)
+
+		// Persist to database
+		if err := eventStore.AppendEvents(sessionID, newState.Round, resolution.Events); err != nil {
+			log.Printf("Failed to append events: %v", err)
+		}
+
+		if newState.Round > state.Round {
+			if err := eventStore.SaveSnapshot(sessionID, newState.Round, newState); err != nil {
+				log.Printf("Failed to save snapshot: %v", err)
+			}
+		}
+
+		log.Printf("Applied action %s for session %s: %s", actionStr, sessionID, strings.Join(resolution.Logs, "; "))
+
+		// Send response back via WebSocket
+		c.WriteJSON(fiber.Map{
+			"success": true,
+			"logs":    resolution.Logs,
+			"state":   newState,
+		})
+
+		// Broadcast update to all clients
+		broadcastGameUpdate(sessionID, newState)
 	}
 
 	// Clean up on disconnect
