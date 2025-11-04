@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"smoldungeon-cli/api"
+	"smoldungeon-cli/engine"
 	"smoldungeon-cli/ui"
 
 	"github.com/charmbracelet/lipgloss"
@@ -14,7 +14,7 @@ import (
 var scenariosCmd = &cobra.Command{
 	Use:   "scenarios",
 	Short: "List available scenarios",
-	Long:  `List all available game scenarios from the server.`,
+	Long:  `List all available game scenarios.`,
 	RunE:  runScenarios,
 }
 
@@ -23,18 +23,16 @@ func init() {
 }
 
 func runScenarios(cmd *cobra.Command, args []string) error {
-	client := api.NewClient(serverURL)
-
 	fmt.Println(ui.TitleStyle.Render("📚 Available Scenarios"))
 	fmt.Println()
 
-	scenarios, err := client.GetScenarios()
+	scenarios, err := engine.ListScenarios(scenarioDir)
 	if err != nil {
-		return fmt.Errorf("failed to fetch scenarios: %w", err)
+		return fmt.Errorf("failed to list scenarios: %w", err)
 	}
 
 	if len(scenarios) == 0 {
-		fmt.Println(ui.ErrorMessageStyle.Render("No scenarios available"))
+		fmt.Println(ui.ErrorMessageStyle.Render("No scenarios found"))
 		return nil
 	}
 

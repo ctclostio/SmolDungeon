@@ -7,7 +7,9 @@ toolchain go1.23.2
 require (
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.9.1
+	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.8.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

@@ -3,53 +3,45 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
-	"smoldungeon-cli/api"
-	"smoldungeon-cli/types"
+	"smoldungeon-cli/engine"
+	"smoldungeon-cli/saves"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ActionType represents different action types
-type ActionType int
-
-const (
-	ActionAttack ActionType = iota
-	ActionDefend
-	ActionFlee
-	ActionAbility
-	ActionItem
-)
-
 // GameModel represents the Bubble Tea model for the game
 type GameModel struct {
-	client      *api.Client
-	sessionID   string
-	state       types.GameState
-	logs        []string
-	cursor      int
-	menuOptions []string
-	width       int
-	height      int
-	err         error
-	quitting    bool
-	actionMode  bool // true when selecting action details (like target)
-	targetList  []types.Character
-	targetIndex int
+	state        engine.State
+	logs         []string
+	cursor       int
+	menuOptions  []string
+	width        int
+	height       int
+	err          error
+	quitting     bool
+	actionMode   bool // true when selecting action details (like target)
+	targetList   []engine.Character
+	targetIndex  int
+	scenarioName string
+	saveDir      string
+	autoSave     bool
 }
 
 // NewGameModel creates a new game model
-func NewGameModel(client *api.Client, sessionID string, initialState types.GameState) GameModel {
+func NewGameModel(initialState engine.State, scenarioName, saveDir string, autoSave bool) GameModel {
 	return GameModel{
-		client:      client,
-		sessionID:   sessionID,
-		state:       initialState,
-		logs:        []string{},
-		cursor:      0,
-		menuOptions: []string{"⚔️  Attack", "🛡️  Defend", "🏃 Flee"},
-		width:       80,
-		height:      24,
+		state:        initialState,
+		logs:         []string{},
+		cursor:       0,
+		menuOptions:  []string{"⚔️  Attack", "🛡️  Defend", "🏃 Flee"},
+		width:        80,
+		height:       24,
+		scenarioName: scenarioName,
+		saveDir:      saveDir,
+		autoSave:     autoSave,
 	}
 }
 
@@ -69,8 +61,27 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
+			// Auto-save on quit if enabled
+			if m.autoSave && !m.state.IsComplete {
+				saveName := saves.AutoSaveName(m.scenarioName)
+				saves.SaveGame(m.saveDir, saveName, m.scenarioName, m.state, m.logs)
+			}
 			m.quitting = true
 			return m, tea.Quit
+
+		case "ctrl+s":
+			// Manual save
+			if !m.state.IsComplete {
+				saveName := saves.AutoSaveName(m.scenarioName)
+				if err := saves.SaveGame(m.saveDir, saveName, m.scenarioName, m.state, m.logs); err != nil {
+					m.err = fmt.Errorf("save failed: %w", err)
+				} else {
+					m.logs = append(m.logs, "💾 Game saved!")
+					if len(m.logs) > 10 {
+						m.logs = m.logs[len(m.logs)-10:]
+					}
+				}
+			}
 
 		case "up", "k":
 			if m.actionMode {
@@ -112,8 +123,19 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.targetList = nil
 		m.targetIndex = 0
 
+		// Auto-save after each turn
+		if m.autoSave && !m.state.IsComplete {
+			saveName := saves.AutoSaveName(m.scenarioName)
+			saves.SaveGame(m.saveDir, saveName, m.scenarioName, m.state, m.logs)
+		}
+
 		// Check if game is over
 		if m.state.IsComplete {
+			// Save final state
+			if m.autoSave {
+				saveName := saves.AutoSaveName(m.scenarioName)
+				saves.SaveGame(m.saveDir, saveName, m.scenarioName, m.state, m.logs)
+			}
 			return m, tea.Quit
 		}
 		return m, nil
@@ -165,19 +187,19 @@ func (m GameModel) executeAction() (tea.Model, tea.Cmd) {
 		}
 
 		target := m.targetList[m.targetIndex]
-		var weapon types.Weapon
+		var weapon engine.Weapon
 		if len(currentChar.Weapons) > 0 {
 			weapon = currentChar.Weapons[0]
 		}
 
-		action := types.Action{
+		action := engine.Action{
 			Kind:     "Attack",
 			Attacker: currentChar.ID,
 			Target:   target.ID,
 			Weapon:   weapon.ID,
 		}
 
-		return m, executeActionCmd(m.client, m.sessionID, action)
+		return m, executeActionCmd(m.state, action)
 	}
 
 	return m, nil
@@ -190,12 +212,12 @@ func (m GameModel) executeDefend() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	action := types.Action{
+	action := engine.Action{
 		Kind:  "Defend",
 		Actor: currentChar.ID,
 	}
 
-	return m, executeActionCmd(m.client, m.sessionID, action)
+	return m, executeActionCmd(m.state, action)
 }
 
 // executeFlee executes a flee action
@@ -205,12 +227,12 @@ func (m GameModel) executeFlee() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	action := types.Action{
+	action := engine.Action{
 		Kind:  "Flee",
 		Actor: currentChar.ID,
 	}
 
-	return m, executeActionCmd(m.client, m.sessionID, action)
+	return m, executeActionCmd(m.state, action)
 }
 
 // View renders the UI
@@ -254,7 +276,7 @@ func (m GameModel) View() string {
 
 	// Help
 	b.WriteString("\n\n")
-	b.WriteString(HelpStyle.Render("↑/↓: Navigate • Enter: Select • q: Quit"))
+	b.WriteString(HelpStyle.Render("↑/↓: Navigate • Enter: Select • Ctrl+S: Save • q: Quit"))
 
 	return BaseStyle.Render(b.String())
 }
@@ -284,7 +306,7 @@ func (m GameModel) renderCharacters() string {
 }
 
 // renderCharacter renders a single character card
-func (m GameModel) renderCharacter(char types.Character, isPlayer bool) string {
+func (m GameModel) renderCharacter(char engine.Character, isPlayer bool) string {
 	currentChar := getCurrentCharacter(m.state)
 	isCurrentTurn := currentChar != nil && char.ID == currentChar.ID
 
@@ -426,7 +448,7 @@ func (m GameModel) renderGameOver() string {
 
 // Helper functions
 
-func getCurrentCharacter(state types.GameState) *types.Character {
+func getCurrentCharacter(state engine.State) *engine.Character {
 	if len(state.TurnOrder) == 0 {
 		return nil
 	}
@@ -440,8 +462,8 @@ func getCurrentCharacter(state types.GameState) *types.Character {
 	return nil
 }
 
-func getPlayers(state types.GameState) []types.Character {
-	var players []types.Character
+func getPlayers(state engine.State) []engine.Character {
+	var players []engine.Character
 	for _, char := range state.Characters {
 		if char.IsPlayer && char.Stats.HP > 0 {
 			players = append(players, char)
@@ -450,8 +472,8 @@ func getPlayers(state types.GameState) []types.Character {
 	return players
 }
 
-func getEnemies(state types.GameState) []types.Character {
-	var enemies []types.Character
+func getEnemies(state engine.State) []engine.Character {
+	var enemies []engine.Character
 	for _, char := range state.Characters {
 		if !char.IsPlayer && char.Stats.HP > 0 {
 			enemies = append(enemies, char)
@@ -463,7 +485,7 @@ func getEnemies(state types.GameState) []types.Character {
 // Messages
 
 type actionResultMsg struct {
-	state types.GameState
+	state engine.State
 	logs  []string
 }
 
@@ -473,15 +495,57 @@ type errMsg struct {
 
 // Commands
 
-func executeActionCmd(client *api.Client, sessionID string, action types.Action) tea.Cmd {
+func executeActionCmd(state engine.State, action engine.Action) tea.Cmd {
 	return func() tea.Msg {
-		resp, err := client.ApplyAction(sessionID, action)
-		if err != nil {
-			return errMsg{err}
+		// Generate seed
+		seed := time.Now().UnixNano()
+
+		// Apply action using engine
+		resolution := engine.ApplyAction(state, action, seed)
+
+		// Process AI turns automatically
+		aiDecisionMaker := engine.NewAIDecisionMaker()
+		currentResolution := resolution
+
+		maxAITurns := 10
+		for i := 0; i < maxAITurns; i++ {
+			if currentResolution.State.IsComplete {
+				break
+			}
+
+			currentChar := getCurrentCharacter(currentResolution.State)
+			if currentChar == nil || currentChar.IsPlayer {
+				break
+			}
+
+			// Skip dead characters
+			if currentChar.Stats.HP <= 0 {
+				dummyAction := engine.Action{
+					Kind:  "Defend",
+					Actor: currentChar.ID,
+				}
+				seed := time.Now().UnixNano()
+				skipResolution := engine.ApplyAction(currentResolution.State, dummyAction, seed)
+				currentResolution.State = skipResolution.State
+				continue
+			}
+
+			// AI turn
+			aiAction := aiDecisionMaker.DecideAction(currentResolution.State, currentChar.ID)
+			seed := time.Now().UnixNano()
+			aiResolution := engine.ApplyAction(currentResolution.State, aiAction, seed)
+
+			currentResolution.Logs = append(currentResolution.Logs, aiResolution.Logs...)
+			currentResolution.Events = append(currentResolution.Events, aiResolution.Events...)
+			currentResolution.State = aiResolution.State
+
+			// Small delay for better UX
+			time.Sleep(100 * time.Millisecond)
 		}
+
 		return actionResultMsg{
-			state: resp.State,
-			logs:  resp.Logs,
+			state: currentResolution.State,
+			logs:  currentResolution.Logs,
 		}
 	}
 }

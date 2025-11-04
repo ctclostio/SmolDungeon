@@ -115,6 +115,10 @@ var (
 				Foreground(ColorDanger).
 				Bold(true)
 
+	WarningStyle = lipgloss.NewStyle().
+			Foreground(ColorWarning).
+			Bold(true)
+
 	// Help text style
 	HelpStyle = lipgloss.NewStyle().
 			Foreground(ColorTextMuted).

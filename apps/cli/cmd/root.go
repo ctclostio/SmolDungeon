@@ -3,22 +3,27 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	serverURL string
+	saveDir      string
+	scenarioDir  string
+	autoSave     bool
 )
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
 	Use:   "smoldungeon",
-	Short: "SmolDungeon - A turn-based D&D combat game",
-	Long: `SmolDungeon is a terminal-based turn-based combat game.
+	Short: "SmolDungeon - A standalone turn-based D&D combat game",
+	Long: `SmolDungeon is a terminal-based turn-based combat game with no server required.
 
 Experience D&D-style combat with beautiful terminal graphics,
-interactive menus, and real-time combat against AI opponents.`,
+interactive menus, and real-time combat against AI opponents.
+
+All game data is stored locally - no internet connection needed!`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Show help if no subcommand is provided
 		cmd.Help()
@@ -34,6 +39,17 @@ func Execute() {
 }
 
 func init() {
+	// Get home directory for default save location
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+
+	defaultSaveDir := filepath.Join(homeDir, ".smoldungeon", "saves")
+	defaultScenarioDir := "./scenarios"
+
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "http://localhost:3000", "Game server URL")
+	rootCmd.PersistentFlags().StringVar(&saveDir, "save-dir", defaultSaveDir, "Directory for save files")
+	rootCmd.PersistentFlags().StringVar(&scenarioDir, "scenario-dir", defaultScenarioDir, "Directory for scenario files")
+	rootCmd.PersistentFlags().BoolVar(&autoSave, "auto-save", true, "Automatically save game progress")
 }
