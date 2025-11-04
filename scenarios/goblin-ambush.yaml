@@ -8,11 +8,11 @@ players:
       x: 0
       y: 0
     stats:
-      hp: 30
-      maxHp: 30
+      hp: 38
+      maxHp: 38
       attack: 6
       defense: 4
-      speed: 3
+      speed: 5
     weapons:
       - name: "Longsword"
         damage: 8
@@ -44,10 +44,10 @@ enemies:
       maxHp: 15
       attack: 4
       defense: 2
-      speed: 5
+      speed: 4
     weapons:
       - name: "Rusty Sword"
-        damage: 5
+        damage: 4
         accuracy: 75
     abilities:
       - name: "Sneaky Strike"
@@ -68,7 +68,7 @@ enemies:
       speed: 6
     weapons:
       - name: "Short Bow"
-        damage: 6
+        damage: 5
         accuracy: 80
     abilities:
       - name: "Aimed Shot"

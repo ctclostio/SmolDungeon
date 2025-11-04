@@ -41,6 +41,10 @@ func DemoServer() {
 		Temperature: 0.7,
 	})
 
+	// Initialize AI decision maker
+	aiDecisionMaker = NewAIDecisionMaker()
+	log.Printf("✅ Initialized AI decision maker")
+
 	// Setup Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -85,8 +89,16 @@ func DemoServer() {
 		})
 	})
 
+	// JSON API endpoints (for React frontend and CLI)
+	app.Post("/sessions", handleCreateSession)
+	app.Get("/sessions/:sessionId", handleGetSession)
+	app.Get("/sessions/:sessionId/state", handleGetSessionState)
+	app.Get("/scenarios", handleGetScenariosJSON)
+	app.Post("/tools/apply_action", handleApplyAction)
+
+	// HTML routes (for Go template frontend)
 	app.Get("/", handleHomePage)
-	app.Get("/scenarios", handleScenariosPage)
+	app.Get("/scenarios-page", handleScenariosPage)
 	app.Get("/game/:sessionId", handleGamePage)
 	app.Post("/game/start", handleStartGameDemo)
 	app.Post("/game/:sessionId/action", handleGameAction)

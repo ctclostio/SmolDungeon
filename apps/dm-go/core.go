@@ -313,6 +313,11 @@ func handleAbility(state *State, action Action, rng *SeededRNG, events []Event, 
 		return Resolution{Events: events, State: *state, Logs: append(logs, "Ability not found")}
 	}
 
+	// Defensive: Initialize AbilityCooldowns map if nil to prevent panics
+	if character.AbilityCooldowns == nil {
+		character.AbilityCooldowns = make(map[string]int)
+	}
+
 	cooldownKey := string(ability.ID)
 	currentCooldown := character.AbilityCooldowns[cooldownKey]
 
@@ -537,12 +542,10 @@ func deepCopyState(state State) State {
 			copy(characters[i].Items, char.Items)
 		}
 
-		// Deep copy ability cooldowns map
-		if len(char.AbilityCooldowns) > 0 {
-			characters[i].AbilityCooldowns = make(map[string]int, len(char.AbilityCooldowns))
-			for k, v := range char.AbilityCooldowns {
-				characters[i].AbilityCooldowns[k] = v
-			}
+		// Deep copy ability cooldowns map - ALWAYS initialize to prevent nil map panics
+		characters[i].AbilityCooldowns = make(map[string]int)
+		for k, v := range char.AbilityCooldowns {
+			characters[i].AbilityCooldowns[k] = v
 		}
 	}
 

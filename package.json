@@ -1,13 +1,17 @@
 {
   "name": "smol-dungeon-go",
   "version": "1.0.0",
-  "description": "High-performance SmolDungeon with Go Fiber backend",
+  "description": "High-performance SmolDungeon with Go Fiber backend + React frontend + CLI client",
   "scripts": {
     "dev": "cd apps/dm-go && go run .",
+    "dev:web": "cd apps/web && npm run dev",
+    "play": "cd apps/cli && go run .",
     "build": "cd apps/dm-go && go build -o dm-server .",
+    "build:web": "cd apps/web && npm run build",
+    "build:cli": "cd apps/cli && go build -o smoldungeon-cli .",
     "test": "cd apps/dm-go && go test -v ./..."
   },
-  "keywords": ["golang", "fiber", "gaming", "dungeon", "combat"],
+  "keywords": ["golang", "fiber", "gaming", "dungeon", "combat", "react", "phaser", "cli", "terminal"],
   "author": "SmolDungeon Team",
   "license": "MIT"
 }
