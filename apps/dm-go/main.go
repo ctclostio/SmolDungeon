@@ -20,6 +20,7 @@ var (
 	stateManager    *StateManager
 	templateEngine  *TemplateEngine
 	aiDecisionMaker *AIDecisionMaker
+	dmAssistant     *DMAssistant
 	scenarioDir     string
 
 	// Services
@@ -120,6 +121,10 @@ func initializeComponents(config Config) error {
 	// Initialize AI decision maker
 	aiDecisionMaker = NewAIDecisionMaker()
 	log.Printf("Initialized AI decision maker")
+
+	// Initialize DM assistant for character creation
+	dmAssistant = NewDMAssistant(llmClient)
+	log.Printf("Initialized DM assistant")
 
 	// Set scenario directory
 	scenarioDir = config.ScenarioDir

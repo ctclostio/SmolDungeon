@@ -176,3 +176,91 @@ type ScenarioItem struct {
 	Type   string `yaml:"type"`
 	Effect string `yaml:"effect"`
 }
+
+// ============ Character Creation Types ============
+
+// Race represents a character race (e.g., Human, Elf, Dwarf)
+type Race struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	StatBonuses map[string]int    `json:"statBonuses"` // e.g., {"hp": 2, "attack": 1}
+	Abilities   []AbilityTemplate `json:"abilities"`   // Racial abilities
+}
+
+// Class represents a character class (e.g., Fighter, Wizard, Rogue)
+type Class struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	StatBonuses map[string]int    `json:"statBonuses"`
+	BaseStats   Stat              `json:"baseStats"`
+	Weapons     []WeaponTemplate  `json:"weapons"`  // Starting weapons
+	Abilities   []AbilityTemplate `json:"abilities"` // Class abilities
+	Items       []ItemTemplate    `json:"items"`    // Starting items
+}
+
+// WeaponTemplate represents a weapon template for character creation
+type WeaponTemplate struct {
+	Name     string `json:"name"`
+	Damage   int    `json:"damage"`
+	Accuracy int    `json:"accuracy"`
+}
+
+// AbilityTemplate represents an ability template for character creation
+type AbilityTemplate struct {
+	Name     string `json:"name"`
+	Cooldown int    `json:"cooldown"`
+	Effect   string `json:"effect"`
+	Power    int    `json:"power"`
+}
+
+// ItemTemplate represents an item template for character creation
+type ItemTemplate struct {
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Effect string `json:"effect"`
+}
+
+// CharacterCreationRequest represents a request to create a character
+type CharacterCreationRequest struct {
+	Name      string         `json:"name"`
+	RaceID    string         `json:"raceId"`
+	ClassID   string         `json:"classId"`
+	Backstory string         `json:"backstory,omitempty"`
+	Stats     *Stat          `json:"stats,omitempty"` // Optional custom stats
+	Position  *Position      `json:"position,omitempty"`
+}
+
+// CharacterCreationResponse represents the created character
+type CharacterCreationResponse struct {
+	Character Character `json:"character"`
+	Message   string    `json:"message"`
+}
+
+// DMChatMessage represents a message in the DM chat
+type DMChatMessage struct {
+	Role      string `json:"role"`    // "user", "assistant", "system"
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp,omitempty"`
+}
+
+// DMChatRequest represents a request to chat with the DM
+type DMChatRequest struct {
+	Messages []DMChatMessage `json:"messages"`
+	Context  string          `json:"context,omitempty"` // Additional context (e.g., character creation stage)
+}
+
+// DMChatResponse represents the DM's response
+type DMChatResponse struct {
+	Message     string            `json:"message"`
+	Suggestions []string          `json:"suggestions,omitempty"` // Suggested options or next steps
+	Data        map[string]interface{} `json:"data,omitempty"` // Additional structured data
+}
+
+// CharacterCreationStep represents the current step in character creation
+type CharacterCreationStep struct {
+	Step        string   `json:"step"` // "race", "class", "stats", "equipment", "backstory", "complete"
+	Completed   []string `json:"completed"`
+	CurrentData map[string]interface{} `json:"currentData"`
+}

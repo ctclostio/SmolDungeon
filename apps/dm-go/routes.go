@@ -30,6 +30,14 @@ func setupRoutes(app *fiber.App) {
 	// Scenarios (JSON API for React frontend)
 	app.Get("/scenarios", handleGetScenariosJSON)
 
+	// Character creation endpoints (JSON API for React frontend)
+	app.Get("/characters/races", handleGetRaces)
+	app.Get("/characters/classes", handleGetClasses)
+	app.Post("/characters/create", handleCreateCharacter)
+	app.Post("/characters/dm-chat", handleDMChat)
+	app.Post("/characters/suggest-build", handleSuggestBuild)
+	app.Post("/characters/generate-backstory", handleGenerateBackstory)
+
 	// WebSocket endpoint for real-time game
 	app.Get("/ws/:sessionId", websocket.New(handleWebSocket))
 
