@@ -10,6 +10,18 @@ dist/
 build/
 *.tsbuildinfo
 
+# Go build artifacts
+*.exe
+*.exe~
+dm-server
+dm-server-linux
+coverage.out
+*.out
+
+# Test files
+test_*.txt
+test_*.json
+
 # Environment variables
 .env
 .env.local
@@ -62,6 +74,7 @@ jspm_packages/
 # IDE files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -79,3 +92,10 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# Misc files to ignore
+*.msi
+*.png
+*.jpg
+*.jpeg
+nul
