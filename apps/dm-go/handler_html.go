@@ -74,6 +74,16 @@ func handleGamePage(c *fiber.Ctx) error {
 	}
 
 	currentChar := GetCurrentCharacter(state)
+	if currentChar != nil && !currentChar.IsPlayer {
+		resolution := Resolution{
+			State:  state,
+			Events: []Event{},
+			Logs:   []string{},
+		}
+		finalResolution := gameService.ProcessAITurns(sessionID, resolution)
+		state = finalResolution.State
+		currentChar = GetCurrentCharacter(state)
+	}
 	isPlayerTurn := currentChar != nil && currentChar.IsPlayer
 
 	html, err := templateEngine.RenderGamePage(state, sessionID, isPlayerTurn)
@@ -118,6 +128,9 @@ func handleGameAction(c *fiber.Ctx) error {
 	if action.Kind == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "Unknown action"})
 	}
+	if err := validatePlayerAction(state, action); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid action: " + err.Error()})
+	}
 
 	// Apply the action
 	seed := time.Now().UnixNano()
@@ -137,7 +150,14 @@ func handleGameAction(c *fiber.Ctx) error {
 	// Broadcast update to WebSocket clients
 	broadcastGameUpdate(sessionID, newState)
 
-	return c.JSON(fiber.Map{"success": true, "logs": resolution.Logs})
+	finalResolution := gameService.ProcessAITurns(sessionID, resolution)
+	broadcastGameUpdate(sessionID, finalResolution.State)
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"logs":    finalResolution.Logs,
+		"state":   finalResolution.State,
+	})
 }
 
 // handleStartGame creates a new game session and redirects to game page
@@ -177,54 +197,19 @@ func handleStartGame(c *fiber.Ctx) error {
 		log.Printf("Failed to save initial snapshot: %v", err)
 	}
 
+	dummyResolution := Resolution{
+		State:  state,
+		Events: []Event{},
+		Logs:   []string{},
+	}
+	finalResolution := gameService.ProcessAITurns(sessionID, dummyResolution)
+	stateManager.SetState(sessionID, finalResolution.State)
+
 	// Redirect to game page
 	return c.Redirect(fmt.Sprintf("/game/%s", sessionID))
 }
 
 // createActionFromHTTP creates an action from an HTTP request
 func createActionFromHTTP(actionStr string, currentChar *Character, state State) Action {
-	var action Action
-
-	switch actionStr {
-	case "attack":
-		// Target the opposite team: if current char is player, target enemies; if enemy, target players
-		var targetID ID
-		targetIsPlayer := !currentChar.IsPlayer // If attacker is enemy, target players; if player, target enemies
-		for _, char := range state.Characters {
-			if char.IsPlayer == targetIsPlayer && char.Stats.HP > 0 {
-				targetID = char.ID
-				break
-			}
-		}
-		if targetID == "" {
-			return Action{} // Invalid action
-		}
-
-		// Use first weapon
-		var weaponID ID
-		if len(currentChar.Weapons) > 0 {
-			weaponID = currentChar.Weapons[0].ID
-		}
-
-		action = Action{
-			Kind:     "Attack",
-			Attacker: currentChar.ID,
-			Target:   targetID,
-			Weapon:   weaponID,
-		}
-
-	case "defend":
-		action = Action{
-			Kind:  "Defend",
-			Actor: currentChar.ID,
-		}
-
-	case "flee":
-		action = Action{
-			Kind:  "Flee",
-			Actor: currentChar.ID,
-		}
-	}
-
-	return action
+	return createActionFromClientAction(actionStr, currentChar, state)
 }

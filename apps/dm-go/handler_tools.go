@@ -115,6 +115,10 @@ func handleApplyAction(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid action: actor or attacker is required"})
 	}
 
+	if err := validatePlayerAction(state, req.Action); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid action: " + err.Error()})
+	}
+
 	// Generate seed
 	seed := time.Now().UnixNano()
 

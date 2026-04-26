@@ -63,6 +63,10 @@ func handleWebSocket(c *websocket.Conn) {
 			c.WriteJSON(fiber.Map{"error": "Unknown action"})
 			continue
 		}
+		if err := validatePlayerAction(state, action); err != nil {
+			c.WriteJSON(fiber.Map{"error": "Invalid action: " + err.Error()})
+			continue
+		}
 
 		// Apply the action
 		seed := time.Now().UnixNano()
@@ -79,15 +83,17 @@ func handleWebSocket(c *websocket.Conn) {
 
 		log.Printf("Applied action %s for session %s: %s", actionStr, sessionID, strings.Join(resolution.Logs, "; "))
 
+		finalResolution := gameService.ProcessAITurns(sessionID, resolution)
+
 		// Send response back via WebSocket
 		c.WriteJSON(fiber.Map{
 			"success": true,
-			"logs":    resolution.Logs,
-			"state":   newState,
+			"logs":    finalResolution.Logs,
+			"state":   finalResolution.State,
 		})
 
 		// Broadcast update to all clients
-		broadcastGameUpdate(sessionID, newState)
+		broadcastGameUpdate(sessionID, finalResolution.State)
 	}
 
 	// Clean up on disconnect
@@ -100,50 +106,7 @@ func handleWebSocket(c *websocket.Conn) {
 
 // createActionFromWebSocket creates an action from a WebSocket message
 func createActionFromWebSocket(actionStr string, currentChar *Character, state State) Action {
-	var action Action
-
-	switch actionStr {
-	case "attack":
-		// Target the opposite team
-		var targetID ID
-		targetIsPlayer := !currentChar.IsPlayer
-		for _, char := range state.Characters {
-			if char.IsPlayer == targetIsPlayer && char.Stats.HP > 0 {
-				targetID = char.ID
-				break
-			}
-		}
-		if targetID == "" {
-			return Action{} // Invalid action
-		}
-
-		// Use first weapon
-		var weaponID ID
-		if len(currentChar.Weapons) > 0 {
-			weaponID = currentChar.Weapons[0].ID
-		}
-
-		action = Action{
-			Kind:     "Attack",
-			Attacker: currentChar.ID,
-			Target:   targetID,
-			Weapon:   weaponID,
-		}
-
-	case "defend":
-		action = Action{
-			Kind:  "Defend",
-			Actor: currentChar.ID,
-		}
-
-	case "flee":
-		action = Action{
-			Kind:  "Flee",
-			Actor: currentChar.ID,
-		}
-	}
-
-	return action
+	return createActionFromClientAction(actionStr, currentChar, state)
 }
 
 // broadcastGameUpdate broadcasts game state update to WebSocket clients

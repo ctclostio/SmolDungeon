@@ -416,22 +416,31 @@
             }
         }
 
-        function updateTurnIndicator(state) {
-            const indicator = document.querySelector('.turn-indicator');
-            const currentChar = state.characters[state.currentTurn];
-            if (currentChar) {
-                indicator.textContent = currentChar.name + "'s Turn";
-            }
-        }
+	        function updateTurnIndicator(state) {
+	            const indicator = document.querySelector('.turn-indicator');
+	            const currentChar = getCurrentCharacter(state);
+	            if (currentChar) {
+	                indicator.textContent = currentChar.name + "'s Turn";
+	            }
+	        }
 
-        function updateActionButtons(state) {
-            const currentChar = state.characters[state.currentTurn];
-            const isPlayerTurn = currentChar && currentChar.isPlayer;
-            const actionButtons = document.getElementById('action-buttons');
-            if (actionButtons) {
-                actionButtons.style.display = isPlayerTurn ? 'block' : 'none';
-            }
-        }
+	        function updateActionButtons(state) {
+	            const currentChar = getCurrentCharacter(state);
+	            const isPlayerTurn = currentChar && currentChar.isPlayer;
+	            const actionButtons = document.getElementById('action-buttons');
+	            if (actionButtons) {
+	                actionButtons.style.display = isPlayerTurn ? 'block' : 'none';
+	            }
+	        }
+
+	        function getCurrentCharacter(state) {
+	            if (!state.turnOrder || state.currentTurn < 0 || state.currentTurn >= state.turnOrder.length) {
+	                return null;
+	            }
+
+	            const currentId = state.turnOrder[state.currentTurn];
+	            return state.characters.find(character => character.id === currentId) || null;
+	        }
 
         function addLogEntry(message) {
             const logEntries = document.getElementById('log-entries');

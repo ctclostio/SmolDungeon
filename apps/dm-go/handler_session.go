@@ -54,7 +54,7 @@ func handleGetSession(c *fiber.Ctx) error {
 	})
 }
 
-// handleGetSessionState returns just the game state for a session (for React frontend)
+// handleGetSessionState returns just the game state for a session
 func handleGetSessionState(c *fiber.Ctx) error {
 	sessionID := c.Params("sessionId")
 
@@ -66,7 +66,7 @@ func handleGetSessionState(c *fiber.Ctx) error {
 	return c.JSON(state)
 }
 
-// handleGetScenariosJSON returns available scenarios as JSON array (for React frontend)
+// handleGetScenariosJSON returns available scenarios as JSON array
 func handleGetScenariosJSON(c *fiber.Ctx) error {
 	scenarios, err := scenarioService.GetAvailableScenarios()
 	if err != nil {

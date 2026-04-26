@@ -32,9 +32,10 @@ type GameModel struct {
 
 // NewGameModel creates a new game model
 func NewGameModel(initialState engine.State, scenarioName, saveDir string, autoSave bool) GameModel {
+	state, logs := resolveAITurns(initialState)
 	return GameModel{
-		state:        initialState,
-		logs:         []string{},
+		state:        state,
+		logs:         logs,
 		cursor:       0,
 		menuOptions:  []string{"⚔️  Attack", "🛡️  Defend", "🏃 Flee"},
 		width:        80,
@@ -352,7 +353,7 @@ func (m GameModel) renderCharacter(char engine.Character, isPlayer bool) string 
 		panelStyle = EnemyPanelStyle
 	}
 
-	return panelStyle.Width(m.width - 4).Render(content.String()) + "\n"
+	return panelStyle.Width(m.width-4).Render(content.String()) + "\n"
 }
 
 // renderActionMenu renders the action selection menu
@@ -417,7 +418,7 @@ func (m GameModel) renderCombatLog() string {
 	}
 
 	for i := startIdx; i < len(m.logs); i++ {
-		b.WriteString(LogStyle.Render("  " + m.logs[i]) + "\n")
+		b.WriteString(LogStyle.Render("  "+m.logs[i]) + "\n")
 	}
 
 	return b.String()
@@ -449,17 +450,7 @@ func (m GameModel) renderGameOver() string {
 // Helper functions
 
 func getCurrentCharacter(state engine.State) *engine.Character {
-	if len(state.TurnOrder) == 0 {
-		return nil
-	}
-
-	currentID := state.TurnOrder[state.CurrentTurn]
-	for _, char := range state.Characters {
-		if char.ID == currentID {
-			return &char
-		}
-	}
-	return nil
+	return engine.GetCurrentCharacter(state)
 }
 
 func getPlayers(state engine.State) []engine.Character {
@@ -502,50 +493,52 @@ func executeActionCmd(state engine.State, action engine.Action) tea.Cmd {
 
 		// Apply action using engine
 		resolution := engine.ApplyAction(state, action, seed)
-
-		// Process AI turns automatically
-		aiDecisionMaker := engine.NewAIDecisionMaker()
-		currentResolution := resolution
-
-		maxAITurns := 10
-		for i := 0; i < maxAITurns; i++ {
-			if currentResolution.State.IsComplete {
-				break
-			}
-
-			currentChar := getCurrentCharacter(currentResolution.State)
-			if currentChar == nil || currentChar.IsPlayer {
-				break
-			}
-
-			// Skip dead characters
-			if currentChar.Stats.HP <= 0 {
-				dummyAction := engine.Action{
-					Kind:  "Defend",
-					Actor: currentChar.ID,
-				}
-				seed := time.Now().UnixNano()
-				skipResolution := engine.ApplyAction(currentResolution.State, dummyAction, seed)
-				currentResolution.State = skipResolution.State
-				continue
-			}
-
-			// AI turn
-			aiAction := aiDecisionMaker.DecideAction(currentResolution.State, currentChar.ID)
-			seed := time.Now().UnixNano()
-			aiResolution := engine.ApplyAction(currentResolution.State, aiAction, seed)
-
-			currentResolution.Logs = append(currentResolution.Logs, aiResolution.Logs...)
-			currentResolution.Events = append(currentResolution.Events, aiResolution.Events...)
-			currentResolution.State = aiResolution.State
-
-			// Small delay for better UX
-			time.Sleep(100 * time.Millisecond)
-		}
+		finalState, aiLogs := resolveAITurns(resolution.State)
+		logs := append(resolution.Logs, aiLogs...)
 
 		return actionResultMsg{
-			state: currentResolution.State,
-			logs:  currentResolution.Logs,
+			state: finalState,
+			logs:  logs,
 		}
 	}
+}
+
+func resolveAITurns(state engine.State) (engine.State, []string) {
+	aiDecisionMaker := engine.NewAIDecisionMaker()
+	logs := []string{}
+
+	const maxAITurns = 10
+	for i := 0; i < maxAITurns; i++ {
+		if state.IsComplete {
+			break
+		}
+
+		currentChar := engine.GetCurrentCharacter(state)
+		if currentChar == nil {
+			break
+		}
+
+		if currentChar.Stats.HP <= 0 {
+			resolution := engine.ApplyAction(state, engine.Action{
+				Kind:  "Defend",
+				Actor: currentChar.ID,
+			}, time.Now().UnixNano())
+			logs = append(logs, resolution.Logs...)
+			state = resolution.State
+			continue
+		}
+
+		if currentChar.IsPlayer {
+			break
+		}
+
+		action := aiDecisionMaker.DecideAction(state, currentChar.ID)
+		resolution := engine.ApplyAction(state, action, time.Now().UnixNano())
+		logs = append(logs, resolution.Logs...)
+		state = resolution.State
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return state, logs
 }

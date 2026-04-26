@@ -10,15 +10,15 @@ import (
 // Game balance constants
 const (
 	// Combat constants
-	AttackDC           = 10 // Difficulty class for attack rolls (target defense + this)
-	FleeDC             = 15 // Difficulty class for flee attempts
-	DefenseBonus       = 2  // Temporary defense bonus from Defend action
-	BaseDefenseMax     = 5  // Maximum base defense before bonus is removed
-	MinDamage          = 1  // Minimum damage dealt on successful hit
-	AttackDamageDiv    = 2  // Divisor for attack stat when calculating damage
-	DefaultFistDamage  = 1  // Damage for unarmed/default attacks
+	AttackDC            = 10 // Difficulty class for attack rolls (target defense + this)
+	FleeDC              = 15 // Difficulty class for flee attempts
+	DefenseBonus        = 2  // Temporary defense bonus from Defend action
+	BaseDefenseMax      = 5  // Maximum base defense before bonus is removed
+	MinDamage           = 1  // Minimum damage dealt on successful hit
+	AttackDamageDiv     = 2  // Divisor for attack stat when calculating damage
+	DefaultFistDamage   = 1  // Damage for unarmed/default attacks
 	DefaultFistAccuracy = 0  // Accuracy for unarmed/default attacks
-	MaxCombatRounds    = 20 // Maximum rounds before combat ends
+	MaxCombatRounds     = 20 // Maximum rounds before combat ends
 )
 
 // CreateInitialState creates the initial game state from players and enemies.
@@ -77,7 +77,7 @@ func buildCharacterMap(state *State) map[ID]*Character {
 // Uses O(1) character map lookup if available, falls back to linear search.
 // Returns nil if the turn index is out of bounds or character not found.
 func GetCurrentCharacter(state State) *Character {
-	if state.CurrentTurn >= len(state.TurnOrder) {
+	if state.CurrentTurn < 0 || state.CurrentTurn >= len(state.TurnOrder) {
 		return nil
 	}
 	currentID := state.TurnOrder[state.CurrentTurn]

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	stdctx "context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -132,7 +133,7 @@ Provide a brief, vivid narration of what just happened:`,
 	}
 
 	resp, err := llm.remoteClient.CreateChatCompletion(
-		nil,
+		stdctx.Background(),
 		openai.ChatCompletionRequest{
 			Model: llm.config.Model,
 			Messages: []openai.ChatCompletionMessage{
@@ -200,7 +201,7 @@ What should %s do?`,
 		enemy.Name)
 
 	resp, err := llm.remoteClient.CreateChatCompletion(
-		nil,
+		stdctx.Background(),
 		openai.ChatCompletionRequest{
 			Model: llm.config.Model,
 			Messages: []openai.ChatCompletionMessage{
@@ -433,7 +434,7 @@ Create a vivid, dramatic narration of what just happened in this combat encounte
 
 	// Use remote model (OpenAI compatible)
 	resp, err := llm.remoteClient.CreateChatCompletion(
-		nil,
+		stdctx.Background(),
 		openai.ChatCompletionRequest{
 			Model: llm.config.Model,
 			Messages: []openai.ChatCompletionMessage{

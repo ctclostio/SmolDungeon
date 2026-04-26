@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -57,7 +58,7 @@ func (dm *DMAssistant) ChatWithDM(req DMChatRequest) (DMChatResponse, error) {
 	}
 
 	resp, err := dm.llmClient.remoteClient.CreateChatCompletion(
-		nil,
+		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:       dm.llmClient.config.Model,
 			Messages:    messages,
@@ -109,7 +110,7 @@ Keep it engaging and suitable for a fantasy adventure.`,
 	)
 
 	resp, err := dm.llmClient.remoteClient.CreateChatCompletion(
-		nil,
+		context.Background(),
 		openai.ChatCompletionRequest{
 			Model: dm.llmClient.config.Model,
 			Messages: []openai.ChatCompletionMessage{
@@ -159,7 +160,7 @@ Based on the player's preferences, suggest a race and class combination that wou
 	)
 
 	resp, err := dm.llmClient.remoteClient.CreateChatCompletion(
-		nil,
+		context.Background(),
 		openai.ChatCompletionRequest{
 			Model: dm.llmClient.config.Model,
 			Messages: []openai.ChatCompletionMessage{

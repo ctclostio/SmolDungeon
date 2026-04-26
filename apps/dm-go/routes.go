@@ -22,15 +22,15 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/llm/generate_narration", handleGenerateNarration)
 	app.Post("/llm/generate_combat_description", handleGenerateCombatDescription)
 
-	// Session management (JSON API for React frontend)
+	// Session management (JSON API)
 	app.Post("/sessions", handleCreateSession)
 	app.Get("/sessions/:sessionId", handleGetSession)
 	app.Get("/sessions/:sessionId/state", handleGetSessionState)
 
-	// Scenarios (JSON API for React frontend)
+	// Scenarios (JSON API)
 	app.Get("/scenarios", handleGetScenariosJSON)
 
-	// Character creation endpoints (JSON API for React frontend)
+	// Character creation endpoints (JSON API)
 	app.Get("/characters/races", handleGetRaces)
 	app.Get("/characters/classes", handleGetClasses)
 	app.Post("/characters/create", handleCreateCharacter)

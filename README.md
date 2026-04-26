@@ -29,13 +29,14 @@ This will start the server at: http://localhost:3000
 ```
 smol-dungeon-go/
 ├── apps/
-│   └── dm-go/          # Go Fiber backend with HTML templates
-│       ├── main.go     # Server entry point
-│       ├── types.go    # Data structures
-│       ├── core.go     # Game logic
-│       ├── database.go # SQLite persistence
-│       ├── llm.go      # AI integration
-│       └── templates/  # HTML templates
+│   ├── dm-go/          # Go Fiber backend with HTML templates
+│   │   ├── main.go     # Server entry point
+│   │   ├── types.go    # Data structures
+│   │   ├── core.go     # Game logic
+│   │   ├── database.go # SQLite persistence
+│   │   ├── llm.go      # AI integration
+│   │   └── templates/  # HTML templates
+│   └── cli/            # Standalone terminal client
 ├── scenarios/          # YAML scenario definitions
 └── package.json        # Build scripts
 ```
@@ -84,7 +85,7 @@ LLM_MODEL=gpt-3.5-turbo
 ## Migration from Legacy Version
 
 This Go version replaces the complex TypeScript monorepo with:
-- ✅ **Removed**: Node.js DM server, CLI app, complex packages
+- ✅ **Removed**: Node.js DM server and complex TypeScript packages
 - ✅ **Kept**: Core game logic, web interface
 - ✅ **Improved**: Performance, simplicity, maintainability
 
@@ -102,7 +103,7 @@ curl http://localhost:3000/sessions
 ## Contributing
 
 1. **Backend**: Focus on `apps/dm-go/`
-2. **Frontend**: Focus on `apps/web/`
+2. **CLI**: Focus on `apps/cli/`
 3. **Keep it simple**: Clean, minimal code
 
 ## License

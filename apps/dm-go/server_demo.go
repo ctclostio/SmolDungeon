@@ -60,9 +60,9 @@ func DemoServer() {
 
 	// CORS configuration
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000,http://localhost:5173",
-		AllowMethods: "GET,POST,PUT,DELETE",
-		AllowHeaders: "Origin,Content-Type,Accept,session-id",
+		AllowOrigins:     "http://localhost:3000,http://localhost:5173",
+		AllowMethods:     "GET,POST,PUT,DELETE",
+		AllowHeaders:     "Origin,Content-Type,Accept,session-id",
 		AllowCredentials: true,
 	}))
 
@@ -89,7 +89,7 @@ func DemoServer() {
 		})
 	})
 
-	// JSON API endpoints (for React frontend and CLI)
+	// JSON API endpoints
 	app.Post("/sessions", handleCreateSession)
 	app.Get("/sessions/:sessionId", handleGetSession)
 	app.Get("/sessions/:sessionId/state", handleGetSessionState)
